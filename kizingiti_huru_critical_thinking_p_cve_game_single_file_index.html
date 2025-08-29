@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kizingiti Huru — Njia ya Hekima</title>
+<meta name="description" content="Kizingiti Huru is a short, replayable web game that builds critical thinking and digital literacy for P/CVE." />
+<style>
+  :root{
+    --bg:#0b0f1a;         /* deep night */
+    --fg:#e6f1ff;         /* light text */
+    --accent:#15d1a0;     /* mint */
+    --accent2:#ffb703;    /* amber */
+    --danger:#ff3864;     /* pink-red */
+    --ok:#36d399;         /* green */
+    --card:#111827;       /* slate */
+    --muted:#93a3b8;     /* gray */
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 800px at 20% 10%,#11213a 0%,var(--bg) 50%,#05070c 100%);color:var(--fg);font:16px/1.4 system-ui,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif}
+  .container{max-width:980px;margin:0 auto;padding:24px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:8px 0 20px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:54px;height:54px}
+  h1{margin:0;font-size:clamp(20px,4vw,38px)}
+  .tag{font-weight:600;color:var(--accent);letter-spacing:.5px}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.08);backdrop-filter: blur(4px);border-radius:20px;box-shadow:0 10px 35px rgba(0,0,0,.35)}
+  .panel{padding:22px}
+  button, .btn{appearance:none;border:none;border-radius:14px;padding:12px 18px;cursor:pointer;font-weight:700;color:#041017;background:var(--accent);box-shadow:0 8px 20px rgba(21,209,160,.35);transition:transform .06s ease, filter .15s ease;display:inline-flex;align-items:center;gap:10px}
+  button:hover{filter:brightness(1.05)}
+  button:active{transform: translateY(1px)}
+  .btn-sec{background:#263143;color:var(--fg);box-shadow:0 8px 18px rgba(0,0,0,.25)}
+  .btn-warn{background:var(--accent2)}
+  .btn-danger{background:var(--danger);color:#fff}
+  input, select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #243045;background:#0f1625;color:var(--fg)}
+  label{font-size:14px;color:var(--muted)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:780px){.row{grid-template-columns:1fr}}
+  .hidden{display:none !important}
+  .center{display:flex;align-items:center;justify-content:center}
+  .flex{display:flex;gap:12px;align-items:center}
+  .space{height:20px}
+  .footnote{font-size:12px;color:var(--muted)}
+
+  /* Scene styles */
+  .scene{position:relative;overflow:hidden;min-height:480px;background:radial-gradient(900px 500px at 80% -10%,rgba(21,209,160,.12),transparent 60%),
+           radial-gradient(700px 500px at -20% 110%,rgba(255,183,3,.08),transparent 55%);
+         border-radius:18px}
+  .door{position:absolute;right:42px;bottom:0;width:180px;height:320px;background:linear-gradient(180deg,#1b2738,#0c1422);border:2px solid #2e3b58;border-radius:14px 14px 0 0;box-shadow:inset 0 0 0 3px rgba(255,255,255,.03),0 8px 26px rgba(0,0,0,.4)}
+  .door::after{content:"";position:absolute;left:18px;top:140px;width:12px;height:12px;border-radius:50%;background:var(--accent2);box-shadow:0 0 12px var(--accent2)}
+  .platform{position:absolute;left:0;right:0;bottom:0;height:80px;background:linear-gradient(180deg,#0c1422,#060a12);border-top:1px solid rgba(255,255,255,.06)}
+  .avatars{position:absolute;left:20px;bottom:80px;display:flex;gap:18px}
+  .speech{position:absolute;left:18px;top:18px;right:220px;padding:16px;border-radius:12px;background:rgba(13,23,38,.72);border:1px solid rgba(255,255,255,.08)}
+  .q{font-size:18px;font-weight:700}
+  .choices{margin-top:12px;display:grid;gap:10px}
+  .choice{border:1px solid rgba(255,255,255,.08);background:#0e1728;color:var(--fg);padding:12px 14px;border-radius:12px;cursor:pointer}
+  .choice:hover{border-color:rgba(255,255,255,.18)}
+  .result{margin-top:8px;font-weight:700}
+  .statbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .tagpill{padding:6px 10px;border-radius:999px;background:#162235;color:var(--muted);border:1px solid rgba(255,255,255,.08)}
+
+  /* Simple SVG avatars */
+  .avatar{width:84px;height:84px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:#0d1626;display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .avatar svg{width:76px;height:76px}
+
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:#17223a;border:1px solid rgba(255,255,255,.1);color:var(--fg);padding:10px 14px;border-radius:10px;box-shadow:0 12px 24px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s ease}
+  .toast.show{opacity:1}
+
+  .confetti{position:fixed;inset:0;pointer-events:none}
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo avatar" title="Kizingiti Huru">
+          <!-- Shield / Door logo -->
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="g" x1="0" x2="1">
+                <stop offset="0" stop-color="#15d1a0"/>
+                <stop offset="1" stop-color="#ffb703"/>
+              </linearGradient>
+            </defs>
+            <rect x="12" y="10" width="76" height="80" rx="10" ry="10" fill="#0f1b2e" stroke="url(#g)" stroke-width="4"/>
+            <circle cx="38" cy="50" r="3" fill="#ffb703"/>
+            <rect x="46" y="24" width="30" height="52" rx="6" fill="#101b2e" stroke="#223252"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Kizingiti Huru <span class="tag">— Njia ya Hekima</span></h1>
+          <div class="footnote">A short, replayable P/CVE critical thinking game for youth.</div>
+        </div>
+      </div>
+      <div class="flex">
+        <button id="howBtn" class="btn-sec" title="How to play">How to Play</button>
+        <button id="resetBtn" class="btn-warn" title="Reset progress">Reset</button>
+      </div>
+    </header>
+
+    <!-- GATE -->
+    <section id="gate" class="card panel">
+      <h2>Karibu! Enter to Begin</h2>
+      <p>Only participants with the session code can enter. This keeps each webinar private and manageable.</p>
+      <div class="row">
+        <div>
+          <label for="playerName">Your Name</label>
+          <input id="playerName" placeholder="e.g., Amina, Thabo, Wanjiru" maxlength="32" />
+        </div>
+        <div>
+          <label for="accessCode">Session Code</label>
+          <input id="accessCode" placeholder="Enter code from facilitator"/>
+        </div>
+      </div>
+      <div class="space"></div>
+      <div class="flex">
+        <button id="enterBtn">Enter</button>
+        <div class="footnote">Tip: the code is set by the facilitator inside the file (ACCESS_CODE).</div>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section id="lobby" class="card panel hidden">
+      <h2>Lobby</h2>
+      <p>Welcome, <b id="namePreview"></b>. Your challenge is to find the safe path out by making wise choices. 
+        Use <b>Elder</b> for one hint per question, or <b>Fact‑Check</b> to think like a detective. Avoid traps. Three mistakes and the recruiter keeps you from leaving this room. 
+        We keep this non‑violent: failure simply means the mission is paused and you can try again.</p>
+      <div class="space"></div>
+      <div class="statbar">
+        <span class="tagpill">Attempts left: <b id="lives">3</b></span>
+        <span class="tagpill">Room: <b id="room">1</b>/10</span>
+        <span class="tagpill">Hints used: <b id="hints">0</b></span>
+        <span class="tagpill">Score: <b id="score">0</b></span>
+      </div>
+      <div class="space"></div>
+      <button id="startBtn" class="">Start Challenge</button>
+    </section>
+
+    <!-- GAME SCENE -->
+    <section id="game" class="scene card hidden" aria-live="polite">
+      <div class="speech">
+        <div class="q" id="questionText">Question loads here…</div>
+        <div class="choices" id="choices"></div>
+        <div class="result" id="result"></div>
+        <div class="space"></div>
+        <div class="flex">
+          <button id="hintBtn" class="btn-sec">Ask Elder</button>
+          <button id="factBtn" class="btn-sec">Fact‑Check</button>
+          <button id="skipBtn" class="btn-sec" title="Use with care">50/50</button>
+        </div>
+      </div>
+      <div class="avatars">
+        <div class="avatar" title="Recruiter (antagonist)">
+          <!-- Stylized recruiter avatar -->
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="8" y="14" width="84" height="72" rx="16" fill="#151f33" stroke="#2a3b5e"/>
+            <circle cx="50" cy="46" r="18" fill="#0f172a" stroke="#334a6e"/>
+            <rect x="32" y="64" width="36" height="14" rx="7" fill="#0a1222"/>
+            <path d="M40 40 h20 v6 h-20z" fill="#22314f"/>
+            <circle cx="44" cy="46" r="3" fill="#ffb703"/>
+            <circle cx="56" cy="46" r="3" fill="#ffb703"/>
+          </svg>
+        </div>
+        <div class="avatar" title="Youth (protagonist)">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="8" y="14" width="84" height="72" rx="16" fill="#102039" stroke="#2c4a66"/>
+            <circle cx="50" cy="44" r="18" fill="#0b1a2f" stroke="#376c84"/>
+            <rect x="30" y="64" width="40" height="16" rx="8" fill="#0c223a"/>
+            <path d="M39 48 q11 8 22 0" stroke="#36d399" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+        <div class="avatar" title="Elder (hint)">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="8" y="14" width="84" height="72" rx="16" fill="#0e2036" stroke="#356b68"/>
+            <circle cx="50" cy="42" r="18" fill="#0a2530" stroke="#47a09a"/>
+            <path d="M40 54 q10 8 20 0" stroke="#15d1a0" stroke-width="3" fill="none"/>
+            <circle cx="44" cy="40" r="3" fill="#e6f1ff"/>
+            <circle cx="56" cy="40" r="3" fill="#e6f1ff"/>
+          </svg>
+        </div>
+      </div>
+      <div class="door" id="door" aria-hidden="true"></div>
+      <div class="platform"></div>
+    </section>
+
+    <!-- MODALS -->
+    <section id="modal" class="hidden">
+      <div class="container">
+        <div id="modalCard" class="card panel"></div>
+      </div>
+    </section>
+
+    <!-- ENDING -->
+    <section id="ending" class="card panel hidden">
+      <h2 id="endingTitle">Huru!</h2>
+      <p id="endingText"></p>
+      <div class="space"></div>
+      <div class="flex">
+        <button id="againBtn">Play Again</button>
+        <button id="shareBtn" class="btn-sec">Copy Share Code</button>
+      </div>
+    </section>
+
+    <div id="toast" class="toast">Copied!</div>
+    <canvas id="confetti" class="confetti"></canvas>
+  </div>
+
+<script>
+/***** CONFIG *****/
+const ACCESS_CODE = "AFACC2025"; // <-- change this for each session
+const TOTAL_ROOMS = 10;           // number of questions/doors per run
+const MAX_LIVES = 3;
+
+/** Question bank: scenario-based, P/CVE critical thinking & digital literacy **/
+// type: mc (multiple choice). Correct is indicated by correct:true
+const BANK = [
+  {
+    text: "A trending post claims a certain group was given cash to protest. The post has no sources and uses emotional language. What do you do first?",
+    choices: [
+      {t:"Share to warn friends", correct:false, why:"Sharing unverified claims spreads harm."},
+      {t:"Check original source and corroborate with reputable outlets", correct:true, why:"Verify before sharing. Look for primary sources."},
+      {t:"Report the group to authorities immediately", correct:false, why:"Acting on unverified info can escalate tension."}
+    ],
+    hint: "Fuata ushahidi—follow the evidence before feelings.",
+  },
+  {
+    text: "In a WhatsApp group, a stranger DM’s you promising paid ‘activism’ if you forward polarizing content. Best response?",
+    choices: [
+      {t:"Forward to show loyalty and get paid", correct:false, why:"This incentivizes manipulation."},
+      {t:"Decline, capture screenshots, and report to the group admin", correct:true, why:"Document and report recruitment tactics."},
+      {t:"Ignore but keep the contact for later", correct:false, why:"Keeping ties risks future pressure."}
+    ],
+    hint: "Uadilifu mbele ya faida—integrity before profit.",
+  },
+  {
+    text: "A video clip appears to show a leader inciting violence. It’s very short and cut mid‑sentence. What’s the smartest move?",
+    choices: [
+      {t:"React angrily and quote‑tweet it", correct:false, why:"Amplifies possibly misleading edit."},
+      {t:"Search for the full speech or transcript and the date", correct:true, why:"Context and timing matter."},
+      {t:"Comment: ‘If true, this is bad’ and move on", correct:false, why:"Still adds fuel without context."}
+    ],
+    hint: "Tafuta toleo kamili—seek the full version.",
+  },
+  {
+    text: "An account uses a national flag and claims to be an official agency. What verification step is BEST?",
+    choices: [
+      {t:"Assume it’s official; the flag proves it", correct:false, why:"Logos can be faked."},
+      {t:"Check the handle on the agency’s website or verified directory", correct:true, why:"Cross‑check with official site."},
+      {t:"DM them for confirmation", correct:false, why:"Impersonators will assure you."}
+    ],
+    hint: "Hakiki kutoka chanzo rasmi—verify via official site.",
+  },
+  {
+    text: "A peer pressures you to join a private channel ‘for truth’ that bans questions. What does that signal?",
+    choices: [
+      {t:"Strong leadership—follow without questioning", correct:false, why:"Closed spaces can breed extremism."},
+      {t:"A red flag: echo chamber discouraging critical inquiry", correct:true, why:"Healthy spaces invite scrutiny."},
+      {t:"It’s fine if your friends are there", correct:false, why:"Popularity ≠ credibility."}
+    ],
+    hint: "Maswali ni nuru—questions are light.",
+  },
+  {
+    text: "A message urges ‘act now!’ and provides a shortened link. What’s the safest first step?",
+    choices: [
+      {t:"Click quickly before it expires", correct:false, why:"Urgency is a manipulation tactic."},
+      {t:"Preview/expand the short link and scan with security tools", correct:true, why:"Check where it leads first."},
+      {t:"Forward to tech‑savvy friends to test", correct:false, why:"Don’t risk others."}
+    ],
+    hint: "Haraka haraka haina baraka—slow down, verify.",
+  },
+  {
+    text: "You see a rumor about your community. What’s the BEST de‑escalation move?",
+    choices: [
+      {t:"Publicly shame the suspected source", correct:false, why:"Escalation increases harm."},
+      {t:"Share a calm correction with sources; avoid naming/attacking", correct:true, why:"Model constructive response."},
+      {t:"Ignore; truth will win eventually", correct:false, why:"Silence lets rumors spread."}
+    ],
+    hint: "Penye ukweli, toa ushahidi—offer evidence, not insults.",
+  },
+  {
+    text: "A slick recruitment video uses powerful music and martyr stories. Which thinking tool helps most?",
+    choices: [
+      {t:"Spot propaganda techniques and check who funds it", correct:true, why:"Follow money, identify tactics."},
+      {t:"Rate the music then decide", correct:false, why:"Aesthetics can mislead."},
+      {t:"Ask friends if they felt moved", correct:false, why:"Appeal to popularity ≠ truth."}
+    ],
+    hint: "Tambua mbinu—recognize propaganda tools.",
+  },
+  {
+    text: "A ‘fact card’ uses a fake graph. What quick checks help?",
+    choices: [
+      {t:"Look for axis labels, scales, and source", correct:true, why:"Bad graphs hide details."},
+      {t:"Eyeball the colors only", correct:false, why:"Pretty ≠ accurate."},
+      {t:"Trust because it confirms your view", correct:false, why:"Confirmation bias."}
+    ],
+    hint: "Tazama vyanzo na mizani—sources and scales.",
+  },
+  {
+    text: "You receive a threatening message to join a cause or be ‘exposed’. What’s a safe next step?",
+    choices: [
+      {t:"Comply to make it stop", correct:false, why:"Coercion grows if rewarded."},
+      {t:"Document, block, and report to platform and trusted authorities", correct:true, why:"Safety first with evidence."},
+      {t:"Challenge them 1‑on‑1 and insult back", correct:false, why:"Direct confrontation can escalate risk."}
+    ],
+    hint: "Usalama wa kwanza—prioritize safety and documentation.",
+  },
+  {
+    text: "A community dialogue invites different views with ground rules. What should you do?",
+    choices: [
+      {t:"Attend, listen actively, and ask clarifying questions", correct:true, why:"Dialogue builds resilience."},
+      {t:"Avoid; debates waste time", correct:false, why:"Engagement grows understanding."},
+      {t:"Show up only to ‘own’ opponents", correct:false, why:"Combative posture harms learning."}
+    ],
+    hint: "Kusikiliza ni hekima—listening is wisdom.",
+  },
+  {
+    text: "Someone shares a shocking old photo as if it’s today. What key detail must you check?",
+    choices: [
+      {t:"Timestamp/date and location metadata", correct:true, why:"Old images can mislead."},
+      {t:"How many likes it has", correct:false, why:"Popularity ≠ truth."},
+      {t:"If the colors look dramatic", correct:false, why:"Style distracts."}
+    ],
+    hint: "Chunguza tarehe na mahali—date & place.",
+  }
+];
+
+/***** STATE *****/
+let state = {
+  player:null,
+  lives: MAX_LIVES,
+  room: 1,
+  hintsUsed: 0,
+  score: 0,
+  usedIndexes: [],
+};
+
+/***** UTILITIES *****/
+const $ = (sel)=>document.querySelector(sel);
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1400);
+}
+function rng(n){return Math.floor(Math.random()*n)}
+function pickQuestion(){
+  if(state.usedIndexes.length===BANK.length) state.usedIndexes=[];
+  let idx;
+  do{ idx = rng(BANK.length) } while(state.usedIndexes.includes(idx));
+  state.usedIndexes.push(idx);
+  return {idx, q: BANK[idx]};
+}
+// Simple confetti
+function confetti(){
+  const c = $('#confetti'); const ctx = c.getContext('2d');
+  c.width = innerWidth; c.height = innerHeight;
+  let bits = Array.from({length:120}, ()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height,v:2+Math.random()*3,s:4+Math.random()*6,r:Math.random()*Math.PI,col:`hsl(${Math.random()*360},90%,60%)`}));
+  let t=0; const id = setInterval(()=>{
+    ctx.clearRect(0,0,c.width,c.height);
+    bits.forEach(b=>{b.y+=b.v; b.x+=Math.sin((b.y+b.v)*.03)*1.2; b.r+=.07; ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.r); ctx.fillStyle=b.col; ctx.fillRect(-b.s/2,-b.s/2,b.s,b.s); ctx.restore();});
+    if(++t>120){clearInterval(id); ctx.clearRect(0,0,c.width,c.height)}
+  }, 16);
+}
+// Door chime using WebAudio
+function doorChime(){
+  try{
+    const a = new (window.AudioContext||window.webkitAudioContext)();
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.type='triangle'; o.frequency.value=880; g.gain.value=.0001; o.connect(g); g.connect(a.destination);
+    o.start();
+    // simple arpeggio
+    const now = a.currentTime;
+    const notes=[880,1175,1568,2093];
+    notes.forEach((f,i)=>{
+      const t = now + i*0.09; g.gain.exponentialRampToValueAtTime(0.0001,t);
+      o.frequency.setValueAtTime(f,t);
+      g.gain.exponentialRampToValueAtTime(0.3,t+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.08);
+    });
+    setTimeout(()=>{o.stop(); a.close()}, 600);
+  }catch(e){/* ignore */}
+}
+
+/***** UI FLOW *****/
+const gate = $('#gate'), lobby=$('#lobby'), game=$('#game'), ending=$('#ending');
+const enterBtn = $('#enterBtn');
+const startBtn = $('#startBtn');
+const hintBtn = $('#hintBtn');
+const factBtn = $('#factBtn');
+const skipBtn = $('#skipBtn');
+const againBtn = $('#againBtn');
+const shareBtn = $('#shareBtn');
+const resetBtn = $('#resetBtn');
+const howBtn = $('#howBtn');
+
+enterBtn.addEventListener('click', ()=>{
+  const name = $('#playerName').value.trim();
+  const code = $('#accessCode').value.trim();
+  if(!name){ toast('Add your name'); return; }
+  const urlCode = new URLSearchParams(location.search).get('code');
+  const finalCode = urlCode || ACCESS_CODE;
+  if(code !== finalCode){ toast('Wrong session code'); return; }
+  state.player = name; localStorage.setItem('kh_player', name);
+  $('#namePreview').textContent = name;
+  gate.classList.add('hidden'); lobby.classList.remove('hidden');
+});
+
+startBtn.addEventListener('click', ()=>{
+  state.lives = MAX_LIVES; state.room=1; state.hintsUsed=0; state.score=0; state.usedIndexes=[];
+  updateStats(); lobby.classList.add('hidden'); game.classList.remove('hidden');
+  nextQuestion();
+});
+
+function updateStats(){
+  $('#lives').textContent = state.lives;
+  $('#room').textContent = state.room;
+  $('#hints').textContent = state.hintsUsed;
+  $('#score').textContent = state.score;
+}
+
+let current = null; // {idx, q}
+function nextQuestion(){
+  current = pickQuestion();
+  $('#questionText').textContent = `Room ${state.room}: ${current.q.text}`;
+  const box = $('#choices'); box.innerHTML='';
+  // shuffle choices
+  const choices = [...current.q.choices].sort(()=>Math.random()-.5);
+  choices.forEach(ch=>{
+    const b = document.createElement('button');
+    b.className='choice'; b.textContent = ch.t; b.addEventListener('click', ()=>choose(ch));
+    box.appendChild(b);
+  });
+  $('#result').textContent='';
+}
+
+function choose(ch){
+  if(ch.correct){
+    $('#result').textContent = '✅ Correct — the door unlocks.';
+    $('#result').style.color = 'var(--ok)';
+    state.score += 10; doorChime(); openDoor();
+    setTimeout(()=>{
+      if(state.room >= TOTAL_ROOMS){
+        win();
+      }else{
+        state.room++; updateStats(); nextQuestion();
+      }
+    }, 800);
+  }else{
+    $('#result').textContent = '✖ Not quite: '+ ch.why;
+    $('#result').style.color = 'var(--danger)';
+    state.lives--; updateStats(); shakeDoor();
+    if(state.lives<=0){
+      lose();
+    }
+  }
+}
+
+function openDoor(){
+  const d = $('#door');
+  d.animate([{transform:'translateX(0)'},{transform:'translateX(20px)'}],{duration:150,fill:'forwards'});
+}
+function shakeDoor(){
+  const d = $('#door');
+  d.animate([
+    {transform:'translateX(0)'},
+    {transform:'translateX(-10px)'},
+    {transform:'translateX(10px)'},
+    {transform:'translateX(-6px)'},
+    {transform:'translateX(0)'}
+  ],{duration:350});
+}
+
+hintBtn.addEventListener('click', ()=>{
+  state.hintsUsed++; updateStats();
+  showModal(`<h3>Elder's Hint</h3><p>${current.q.hint}</p><p class=footnote>Use hints wisely. One hint per question.</p>`,[
+    {label:'Asante', cls:'', cb:hideModal}
+  ]);
+  hintBtn.disabled = true; setTimeout(()=>{hintBtn.disabled=false}, 1200);
+});
+
+factBtn.addEventListener('click', ()=>{
+  const content = `
+    <h3>Fact‑Check Toolkit</h3>
+    <ul>
+      <li><b>SOURCE:</b> Who published this? Can you find the original/primary?</li>
+      <li><b>DATE:</b> Is it current or recycled? Check timestamps.</li>
+      <li><b>EVIDENCE:</b> Screenshots, documents, videos in full context?</li>
+      <li><b>MOTIVE:</b> Who benefits if you believe/share it?</li>
+      <li><b>CROSS‑CHECK:</b> Compare at least two reputable outlets.</li>
+    </ul>
+    <p class=footnote>Think like a detective. Pause. Verify. Then act.</p>`;
+  showModal(content,[{label:'Got it',cls:'',cb:hideModal}]);
+});
+
+skipBtn.addEventListener('click', ()=>{
+  // 50/50: remove two wrong options once per question
+  const btns = [...document.querySelectorAll('.choice')];
+  const wrong = btns.filter(b=>{
+    const text = b.textContent;
+    const ch = current.q.choices.find(c=>c.t===text);
+    return !ch.correct;
+  });
+  wrong.sort(()=>Math.random()-.5).slice(0,Math.max(0,wrong.length-1)).forEach(b=>b.remove());
+  skipBtn.disabled = true; setTimeout(()=>skipBtn.disabled=false, 800);
+});
+
+function win(){
+  game.classList.add('hidden'); ending.classList.remove('hidden');
+  $('#endingTitle').textContent = 'Hongera, Huru!';
+  $('#endingText').textContent = `${state.player}, you navigated ${TOTAL_ROOMS} rooms with wisdom. Score: ${state.score}.`;
+  confetti();
+}
+function lose(){
+  game.classList.add('hidden'); ending.classList.remove('hidden');
+  $('#endingTitle').textContent = 'Mission Paused';
+  $('#endingText').textContent = `${state.player}, you used all attempts. Reflect using the toolkit and try again.`;
+}
+
+againBtn.addEventListener('click', ()=>{
+  ending.classList.add('hidden'); lobby.classList.remove('hidden');
+});
+
+shareBtn.addEventListener('click', ()=>{
+  const code = new URLSearchParams(location.search).get('code') || ACCESS_CODE;
+  const msg = `Join my Kizingiti Huru session. Use code: ${code}`;
+  navigator.clipboard.writeText(msg).then(()=>toast('Copied share text')).catch(()=>toast('Copy failed'));
+});
+
+resetBtn.addEventListener('click', ()=>{
+  localStorage.clear(); location.reload();
+});
+
+howBtn.addEventListener('click', ()=>{
+  showModal(`<h3>How to Play</h3>
+  <ol>
+    <li>Enter your <b>name</b> and the <b>session code</b> from the facilitator.</li>
+    <li>Read each scenario. Choose the best action to open the door.</li>
+    <li>Use <b>Elder</b> for a cultural hint, or <b>Fact‑Check</b> for an analytic checklist.</li>
+    <li>Avoid three mistakes. Reach all ${TOTAL_ROOMS} doors to become <b>Huru</b> (free).</li>
+  </ol>`,[{label:'Let’s go',cb:hideModal}])
+});
+
+function showModal(html, actions=[{label:'Close',cls:'',cb:hideModal}]){
+  const card = $('#modalCard');
+  card.innerHTML = html + '<div class="space"></div>';
+  const row = document.createElement('div'); row.className='flex';
+  actions.forEach(a=>{const b = document.createElement('button'); b.textContent=a.label; b.className=a.cls||''; b.addEventListener('click', a.cb); row.appendChild(b)});
+  card.appendChild(row);
+  $('#modal').classList.remove('hidden');
+}
+function hideModal(){ $('#modal').classList.add('hidden') }
+
+// Restore name if stored
+const saved = localStorage.getItem('kh_player');
+if(saved){ $('#playerName').value = saved }
+
+// Allow ?code=XYZ to override ACCESS_CODE purely for deployment convenience
+if(new URLSearchParams(location.search).has('code')){
+  $('#accessCode').placeholder = 'Code is pre‑set by link';
+}
+</script>
+</body>
+</html>
